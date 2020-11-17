@@ -25,6 +25,8 @@ docker exec -it ksqldb bash -c 'echo -e "\n\n⏳ Waiting for ksqlDB to be availa
 
 ### Demo
 
+Please refer to [Gitter](https://gitter.im/USDE2020/EPL) for the EPL version of the following queries.
+
 ```
 show topics;
 ```
