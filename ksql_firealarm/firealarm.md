@@ -118,7 +118,7 @@ note the duplicates
 
 #### Q8 - Stream-to-Stream Join
 
-NOTE: this stream-to-stream join is equivalent to the EPL pattern `every A -> every B where timer:within(1 min)`. Do not expect the same performances. It is evaluated differently.
+NOTE: this stream-to-stream join is equivalent to the EPL pattern `every a = SmokeSensorEvent(smoke=true) -> every TemperatureSensorEvent(temperature > 50, sensor=a.sensor) where timer:within(1 min)`. Do not expect the same performances! It is evaluated differently.
 
 ```
 SELECT *
@@ -128,7 +128,7 @@ FROM TemperatureSensorEvent_STREAM T
  WHERE 
  T.temperature > 50 and
  S.smoke  and
- S.ts > T.ts 
+ S.ts < T.ts 
  EMIT CHANGES;
 ```
 
@@ -145,7 +145,7 @@ FROM TemperatureSensorEvent_STREAM T
  WHERE 
  T.temperature > 50 and
  S.smoke  and
- S.ts > T.ts 
+ S.ts < T.ts 
  EMIT CHANGES;
 ```
 
