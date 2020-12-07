@@ -1,0 +1,33 @@
+---
+version: '3'
+services:
+  influxdb:
+    image: quay.io/influxdb/influxdb:v2.0.2
+    hostname: influxdb
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+
+  influxdb-sidecar-setup:
+    image: emanuelefalzone/influxdb-sidecar-setup:1.0.0
+    hostname: influxdb-sidecar-setup
+    container_name: influxdb-sidecar-setup
+    environment:
+      INFLUX_HOSTNAME: influxdb
+      INFLUX_USERNAME: admin
+      INFLUX_PASSWORD: quantia-analytics
+      INFLUX_TOKEN: "d2VsY29tZQ=="
+      INFLUX_ORGANIZATION: quantia
+      INFLUX_BUCKET: usde
+      INFLUX_RETENTION_PERIOD: 0
+
+  notebook:
+    image: jupyter/pyspark-notebook:42f4c82a07ff
+    ports:
+      - 8888:8888
+    volumes:
+      - ./datagen:/home/jovyan/work
+    environment:
+        - GRANT_SUDO=yesd
+        - JUPYTER_ENABLE_LAB=yes
+        - JUPYTER_TOKEN=quantia-analytics
