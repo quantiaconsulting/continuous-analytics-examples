@@ -17,8 +17,8 @@ services:
       INFLUX_USERNAME: admin
       INFLUX_PASSWORD: quantia-analytics
       INFLUX_TOKEN: "d2VsY29tZQ=="
-      INFLUX_ORGANIZATION: quantia
-      INFLUX_BUCKET: usde
+      INFLUX_ORGANIZATION: usde
+      INFLUX_BUCKET: training
       INFLUX_RETENTION_PERIOD: 0
       INFLUX_PORT: 8086
 
