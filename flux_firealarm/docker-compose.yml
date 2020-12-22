@@ -9,7 +9,7 @@ services:
       - "8086:8086"
 
   influxdb-sidecar-setup:
-    image: emanuelefalzone/influxdb-sidecar-setup:1.0.0
+    image: emanuelefalzone/influxdb-sidecar-setup:1.0.1
     hostname: influxdb-sidecar-setup
     container_name: influxdb-sidecar-setup
     environment:
@@ -20,6 +20,7 @@ services:
       INFLUX_ORGANIZATION: quantia
       INFLUX_BUCKET: usde
       INFLUX_RETENTION_PERIOD: 0
+      INFLUX_PORT: 8086
 
   notebook:
     image: jupyter/pyspark-notebook:42f4c82a07ff

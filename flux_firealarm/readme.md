@@ -27,7 +27,7 @@
 
 **NOTE**: for continuous execution either save as cell in a dashbaord and activate auto-refresh or as a task
 
-###Q0
+### Q0
 
 sensors that measure a temperature above 20 C
 
@@ -42,7 +42,7 @@ from(bucket: "training")
 
 
 
-###Q1
+### Q1
 sensors that observe smoke (smoke either true or false)
 
 ```
@@ -64,7 +64,7 @@ from(bucket: "training")
   |> filter(fn: (r) => r._value == true )
 ```
 
-###Q2 - Avg
+### Q2 - Avg
 
 the average temperature observed by the sensors
 
