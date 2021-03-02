@@ -12,11 +12,11 @@ A standard way of building a materialized cache is to capture the changelog of a
 
 ![hard](img/mv-hard.png)
 
-One way you might do this is to capture the changelog of MySQL using the [Debezium](https://debezium.io) {{ site.ak }} connector. The changelog is stored in {{ site.ak }} and processed by a stream processor. As the materialization updates, it's updated in Redis so that applications can query the materializations. This can work, but is there a better way?
+One way you might do this is to capture the changelog of MySQL using the [Debezium](https://debezium.io) Kafka connector. The changelog is stored in Kafka and processed by a stream processor. As the materialization updates, it's updated in Redis so that applications can query the materializations. This can work, but is there a better way?
 
 ## Why ksqlDB?
 
-Running all of the above systems is a lot to manage. In addition to your database, you end up managing clusters for {{ site.ak }}, connectors, the stream processor, and another data store. It's challenging to monitor, secure, and scale all of these systems as one. ksqlDB helps to consolidate this complexity by slimming the architecture down to two things: storage ({{ site.ak }}) and compute (ksqlDB).
+Running all of the above systems is a lot to manage. In addition to your database, you end up managing clusters for Kafka, connectors, the stream processor, and another data store. It's challenging to monitor, secure, and scale all of these systems as one. ksqlDB helps to consolidate this complexity by slimming the architecture down to two things: storage (Kafka) and compute (ksqlDB).
 
 ![easy](img/mv-easy.png)
 
@@ -26,31 +26,15 @@ Using ksqlDB, you can run any {{ site.kconnectlong }} connector by embedding it 
 
 Imagine that you work at a company with a call center. People frequently call in about purchasing a product, to ask for a refund, and other things. Because the volume of calls is rather high, it isn't practical to run queries over the database storing all the calls every time someone calls in.
 
-This tutorial shows how to create and query a set of materialized views about phone calls made to the call center. It demonstrates capturing changes from a MySQL database, forwarding them into {{ site.ak }}, creating materialized views with ksqlDB, and querying them from your applications.
+This tutorial shows how to create and query a set of materialized views about phone calls made to the call center. It demonstrates capturing changes from a MySQL database, forwarding them into Kafka, creating materialized views with ksqlDB, and querying them from your applications.
 
-### Get the Debezium connector
+### the Debezium connector
 
-To get started, download the Debezium connector to a fresh directory. The easiest way to do this is by using [confluent-hub](https://docs.confluent.io/current/connect/managing/confluent-hub/client.html).
+In the folder `./connectors` you find the Debezium connector 1.4 downloaded from [Confluent Hub](https://www.confluent.io/hub/)
 
-Create a directory for your components:
+### the MySQL configuration
 
-```
-mkdir confluent-hub-components
-```
-
-And run:
-
-```
-confluent-hub install --component-dir confluent-hub-components --no-prompt debezium/debezium-connector-mysql:1.1.0
-```
-
-After running this, `confluent-hub-components` should have some jar files in it.
-
-### Start the stack
-
-To set up and launch the services in the stack, a few files need to be created first.
-
-MySQL requires some custom configuration to play well with Debezium, so take care of this first. Debezium has dedicated [documentation](https://debezium.io/documentation/reference/1.1/connectors/mysql.html) if you're interested, but this guide covers just the essentials. Create a new file at `mysql/custom-config.cnf` with the following content:
+MySQL requires some [custom configuration to play well with Debezium](https://debezium.io/documentation/reference/1.4/connectors/mysql.html). See `./config/mysql/custom-config.cnf` with the following content:
 
 ```
 [mysqld]
@@ -65,9 +49,12 @@ enforce_gtid_consistency = ON
 
 This sets up MySQL's transaction log so that Debezium can watch for changes as they occur.
 
-With this file in place, create a `docker-compose.yml` file that defines the services to launch:
+### the docker-compose file
+
+The `docker-compose.yml` file defines the services to launch:
 
 ```yaml
+---
 ---
 version: '2'
 
@@ -84,10 +71,10 @@ services:
       MYSQL_USER: example-user
       MYSQL_PASSWORD: example-pw
     volumes:
-      - "./mysql/custom-config.cnf:/etc/mysql/conf.d/custom-config.cnf"
+      - "./config/mysql/custom-config.cnf:/etc/mysql/conf.d/custom-config.cnf"
 
   zookeeper:
-    image: confluentinc/cp-zookeeper:{{ site.cprelease }}
+    image: confluentinc/cp-zookeeper:6.1.0
     hostname: zookeeper
     container_name: zookeeper
     ports:
@@ -97,7 +84,7 @@ services:
       ZOOKEEPER_TICK_TIME: 2000
 
   broker:
-    image: confluentinc/cp-kafka:{{ site.cprelease }}
+    image: confluentinc/cp-enterprise-kafka:6.1.0
     hostname: broker
     container_name: broker
     depends_on:
@@ -115,7 +102,7 @@ services:
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
 
   schema-registry:
-    image: confluentinc/cp-schema-registry:{{ site.cprelease }}
+    image: confluentinc/cp-schema-registry:6.1.0
     hostname: schema-registry
     container_name: schema-registry
     depends_on:
@@ -128,7 +115,7 @@ services:
       SCHEMA_REGISTRY_KAFKASTORE_CONNECTION_URL: 'zookeeper:2181'
 
   ksqldb-server:
-    image: confluentinc/ksqldb-server:{{ site.ksqldbversion }}
+    image: confluentinc/ksqldb-server:0.15.0
     hostname: ksqldb-server
     container_name: ksqldb-server
     depends_on:
@@ -137,7 +124,7 @@ services:
     ports:
       - "8088:8088"
     volumes:
-      - "./confluent-hub-components/:/usr/share/kafka/plugins/"
+      - "./connectors/:/usr/share/kafka/plugins/"
     environment:
       KSQL_LISTENERS: "http://0.0.0.0:8088"
       KSQL_BOOTSTRAP_SERVERS: "broker:9092"
@@ -149,17 +136,19 @@ services:
       KSQL_CONNECT_BOOTSTRAP_SERVERS: "broker:9092"
       KSQL_CONNECT_KEY_CONVERTER: "org.apache.kafka.connect.storage.StringConverter"
       KSQL_CONNECT_VALUE_CONVERTER: "io.confluent.connect.avro.AvroConverter"
+      KSQL_CONNECT_KEY_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
       KSQL_CONNECT_VALUE_CONVERTER_SCHEMA_REGISTRY_URL: "http://schema-registry:8081"
-      KSQL_CONNECT_CONFIG_STORAGE_TOPIC: "_ksql-connect-configs"
-      KSQL_CONNECT_OFFSET_STORAGE_TOPIC: "_ksql-connect-offsets"
-      KSQL_CONNECT_STATUS_STORAGE_TOPIC: "_ksql-connect-statuses"
+      KSQL_CONNECT_VALUE_CONVERTER_SCHEMAS_ENABLE: "false"
+      KSQL_CONNECT_CONFIG_STORAGE_TOPIC: "ksql-connect-configs"
+      KSQL_CONNECT_OFFSET_STORAGE_TOPIC: "ksql-connect-offsets"
+      KSQL_CONNECT_STATUS_STORAGE_TOPIC: "ksql-connect-statuses"
       KSQL_CONNECT_CONFIG_STORAGE_REPLICATION_FACTOR: 1
       KSQL_CONNECT_OFFSET_STORAGE_REPLICATION_FACTOR: 1
       KSQL_CONNECT_STATUS_STORAGE_REPLICATION_FACTOR: 1
       KSQL_CONNECT_PLUGIN_PATH: "/usr/share/kafka/plugins"
 
   ksqldb-cli:
-    image: confluentinc/ksqldb-cli:{{ site.ksqldbversion }}
+    image: confluentinc/ksqldb-cli:0.15.0
     container_name: ksqldb-cli
     depends_on:
       - broker
@@ -168,9 +157,9 @@ services:
     tty: true
 ```
 
-There are a few things to notice here. The MySQL image mounts the custom configuration file that you wrote. MySQL merges these configuration settings into its system-wide configuration. The environment variables you gave it also set up a blank database called `call-center` along with a user named `example-user` that can access it.
+There are a few things to notice here. The MySQL image mounts the custom configuration file. MySQL merges these configuration settings into its system-wide configuration. The environment variables you gave it also set up a blank database called `call-center` along with a user named `example-user` that can access it.
 
-Also note that the ksqlDB server image mounts the `confluent-hub-components` directory, too. The jar files that you downloaded need to be on the classpath of ksqlDB when the server starts up.
+Also note that the ksqlDB server image mounts the `connectors` directory, too. 
 
 Bring up the entire stack by running:
 
@@ -247,7 +236,7 @@ Before you issue more commands, tell ksqlDB to start all queries from earliest p
 SET 'auto.offset.reset' = 'earliest';
 ```
 
-Now you can connect to Debezium to stream MySQL's changelog into {{ site.ak }}. Invoke the following command in ksqlDB, which creates a Debezium source connector and writes all of its changes to {{ site.ak }} topics:
+Now you can connect to Debezium to stream MySQL's changelog into Kafka. Invoke the following command in ksqlDB, which creates a Debezium source connector and writes all of its changes to Kafka topics:
 
 ```sql
 CREATE SOURCE CONNECTOR calls_reader WITH (
@@ -373,7 +362,58 @@ Your output should resemble:
 |michael    |3              |46              |
 ```
 
-Try inserting more rows into the MySQL prompt. Query ksqlDB and watch the results propagate in real-time.
+
+### Add some calls in MySQL and see the effect in ksqlDB
+
+Print the raw topic contents to make sure it captured the new row that you'll add to the calls table:
+
+```
+PRINT 'call-center-db.call-center.calls';
+```
+
+Inserting a new row into the MySQL prompt:
+
+```sql
+INSERT INTO calls (name, reason, duration_seconds) VALUES ("derek", "help", 2727);
+
+INSERT INTO calls (name, reason, duration_seconds) VALUES ("michael", "purchase", 4242);```
+
+Watch the results propagate in real-time on the ksqlDB cli.
+
+Query again our materialized views to look up the new values with low latency. How many reasons has Derek called for, and what was the last thing he called about? In the ksqlDB CLI, run the following statement:
+
+```sql
+SELECT name, distinct_reasons, last_reason
+FROM support_view
+WHERE name = 'derek';
+```
+
+Your output should resemble:
+
+```
++---------+-------------------+------------+
+|NAME     |DISTINCT_REASONS   |LAST_REASON |
++---------+-------------------+------------+
+|derek    |4                  |help        |
+```
+
+How many times has Michael called us, and how many minutes has he spent on the line?
+
+```sql
+SELECT name, total_calls, minutes_engaged
+FROM lifetime_view
+WHERE name = 'michael';
+```
+
+Your output should resemble:
+
+```
++-----------+---------------+----------------+
+|NAME       |TOTAL_CALLS    |MINUTES_ENGAGED |
++-----------+---------------+----------------+
+|michael    |4              |187             |
+```
+
 
 ### Tear down the stack
 
