@@ -1,5 +1,5 @@
 # Spark Structured Streaming - Demo
-## Pizza hoven
+## Pizza oven
 
 ### set up
 
