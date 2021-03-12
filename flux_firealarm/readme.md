@@ -8,7 +8,7 @@
 
 ### Open InfluxDB 2.0
 
-1. Open [http://localhost::8086](http://localhost::8086)
+1. Open [http://localhost:8086](http://localhost:8086)
 2. set up the instance:
 	* org: `usde`
 	* bucket: `training`
