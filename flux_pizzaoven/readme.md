@@ -8,7 +8,7 @@
 
 ### Open InfluxDB 2.0
 
-1. Open [http://localhost::8086](http://localhost::8086)
+1. Open [http://localhost::8086](http://localhost:8086)
 2. Use the following credentials:
   * username: `admin`
 	* password: `quantia-analytics`
