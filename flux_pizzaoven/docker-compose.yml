@@ -1,0 +1,27 @@
+---
+version: '3'
+services:
+  influxdb:
+    image: influxdb:2.0.4
+    volumes:
+      - $PWD/data:/var/lib/influxdb2
+    environment:
+      DOCKER_INFLUXDB_INIT_MODE: setup
+      DOCKER_INFLUXDB_INIT_USERNAME: admin
+      DOCKER_INFLUXDB_INIT_PASSWORD: quantia-analytics
+      DOCKER_INFLUXDB_INIT_ORG: quantia
+      DOCKER_INFLUXDB_INIT_BUCKET: training
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: qc-token
+    ports:
+      - "8086:8086"
+
+  notebook:
+    image: jupyter/pyspark-notebook:67b8fb91f950
+    ports:
+      - 8888:8888
+    volumes:
+      - ./datagen:/home/jovyan/work
+    environment:
+        - GRANT_SUDO=yes
+        - JUPYTER_ENABLE_LAB=yes
+        - JUPYTER_TOKEN=quantia-analytics
