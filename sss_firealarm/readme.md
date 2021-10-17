@@ -19,12 +19,12 @@ docker-compose up -d
 
 1. Go to [http://localhost:8888](http://localhost:8888) 
 2. Password: `sda`
-3. run the appropriate cells of `smoke_sensor_simulator.ipynb`
-4. run the appropriate cells of `temperature_sensor_simulator.ipynb`
+3. run the appropriate cells of `notebooks/smoke_sensor_simulator.ipynb`
+4. run the appropriate cells of `notebooks/temperature_sensor_simulator.ipynb`
 
 ## 3. Explore Spark Structured Streaming by example
 
-Walk through the cells in `spark-structured-streaming`
+Walk through the cells in `notebooks/spark-structured-streaming.ipynb`
 
 ## 4. stop the infrastructure
 
