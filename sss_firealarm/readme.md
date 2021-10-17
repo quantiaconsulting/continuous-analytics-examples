@@ -3,6 +3,11 @@
 
 ### set up
 
+#### make sure
+
+* you have [docker](https://docs.docker.com/get-docker/) and docker compose (they are a single app in Widows and Mac. For Linux [install docker compose separately](https://docs.docker.com/compose/install/))
+* you do not any firewall forbidding you to reach `localhost:8888`
+
 #### start up the infrastrucutre
 
 ```
