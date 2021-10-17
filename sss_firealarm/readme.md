@@ -15,18 +15,20 @@ Please refer to [continuous-analytics-examples/epl_firealarm/readme.md](https://
 docker-compose up -d
 ```
 
-## 2. start the data generator
+### you know you succeeded 
 
 1. Go to [http://localhost:8888](http://localhost:8888) 
-2. Password: `sda`
-3. run the appropriate cells of `notebooks/smoke_sensor_simulator.ipynb`
-4. run the appropriate cells of `notebooks/temperature_sensor_simulator.ipynb`
+2. Enter the password: `sda`
+3. You are into a jupyter lab environment and you have a folder named `notebooks`
 
-## 3. Explore Spark Structured Streaming by example
+## 2. Explore Spark Structured Streaming by example
 
-Walk through the cells in `notebooks/spark-structured-streaming.ipynb`
+1. start the data generator
+  1. run the appropriate cells of `notebooks/smoke_sensor_simulator.ipynb`
+  2. run the appropriate cells of `notebooks/temperature_sensor_simulator.ipynb`
+2. Walk through the cells in `notebooks/spark-structured-streaming.ipynb`
 
-## 4. stop the infrastructure
+## 3. stop the infrastructure
 
 ```
 docker-compose down
