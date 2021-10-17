@@ -89,8 +89,8 @@ services:
     ports:
       - 8888:8888
     volumes:
-      - ./datagen:/home/jovyan/work
+      - ./notebooks:/home/jovyan/work
     environment:
         - GRANT_SUDO=yesd
         - JUPYTER_ENABLE_LAB=yes
-        - JUPYTER_TOKEN=quantia-analytics
+        - JUPYTER_TOKEN=sda
