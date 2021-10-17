@@ -15,11 +15,10 @@ Please refer to [continuous-analytics-examples/epl_firealarm/readme.md](https://
 docker-compose up -d
 ```
 
-### you know you succeeded 
+### you know you succeeded if
 
-1. Go to [http://localhost:8888](http://localhost:8888) 
-2. Enter the password: `sda`
-3. You are into a jupyter lab environment and you have a folder named `notebooks`
+1. you can open [http://localhost:8888](http://localhost:8888) 
+2. enter the password `sda` you log into a [jupyter lab environment](https://jupyterlab.readthedocs.io/en/stable/) and you have a folder named `notebooks`
 
 ## 2. Explore Spark Structured Streaming by example
 
