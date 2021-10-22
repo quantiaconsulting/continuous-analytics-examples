@@ -164,7 +164,7 @@ Also note that the ksqlDB server image mounts the `connectors` directory, too.
 Bring up the entire stack by running:
 
 ```
-docker-compose up
+docker-compose up -d
 ```
 
 ### Configure MySQL for Debezium
@@ -376,7 +376,8 @@ Inserting a new row into the MySQL prompt:
 ```sql
 INSERT INTO calls (name, reason, duration_seconds) VALUES ("derek", "help", 2727);
 
-INSERT INTO calls (name, reason, duration_seconds) VALUES ("michael", "purchase", 4242);```
+INSERT INTO calls (name, reason, duration_seconds) VALUES ("michael", "purchase", 4242);
+```
 
 Watch the results propagate in real-time on the ksqlDB cli.
 
@@ -429,10 +430,3 @@ In practice, you won't want to query your materialized views from the ksqlDB pro
 It's much more useful to query them from within your applications. To do that, you can
 use the [Java client for ksqlDB](../../developer-guide/ksqldb-clients/java-client/) or
 submit queries to ksqlDB's servers through its [REST API](../../developer-guide/api/).
-
-## Next steps
-
-Want to learn more? Try another use case tutorial:
-
-- [Streaming ETL pipeline](etl.md)
-- [Event-driven microservice](event-driven-microservice.md)
