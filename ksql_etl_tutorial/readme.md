@@ -186,7 +186,7 @@ Finally, note that the ksqlDB server image mounts the `connectors` directory, to
 Bring up the entire stack by running:
 
 ```
-docker-compose up
+docker-compose up -d
 ```
 
 ### Create the customers table in Postgres
@@ -484,10 +484,7 @@ CREATE SINK CONNECTOR enriched_writer WITH (
 );
 ```
 
-Check that the data arrived in the index by running the following command from your host:
-
-```
-curl http://localhost:9200/shipped_orders/_search?pretty
+Check that the data arrived in the index at this location [http://localhost:9200/shipped_orders/_search?pretty](http://localhost:9200/shipped_orders/_search?pretty)
 ```
 
 Your output should resemble:
@@ -617,7 +614,9 @@ If you exited from the Mongo container, start by logging into the container agai
 
 ```
 docker exec -it mongo /bin/bash
+```
 
+```
 mongo -u $MONGO_INITDB_ROOT_USERNAME -p mongo-pw admin
 ```
 
@@ -631,11 +630,7 @@ db.orders.insert({"customer_id": "3", "order_id": "27", "price": 42.27, "currenc
 db.shipments.insert({"order_id": "27", "shipment_id": "84", "origin": "maine", "ts": "2020-04-04T06:13:00"})
 ```
 
-Check that the data arrived in the Elasticsearch index by running the following command from your host:
-
-```
-curl http://localhost:9200/shipped_orders/_search?pretty
-```
+Check that the data arrived in the Elasticsearch index at [http://localhost:9200/shipped_orders/_search?pretty](http://localhost:9200/shipped_orders/_search?pretty)
 
 Your output should include:
 
@@ -663,10 +658,3 @@ When you're done, tear down the stack by running:
 ```
 docker-compose down
 ```
-
-## Next steps
-
-Want to learn more? Try another use case tutorial:
-
-- [Materialized view/cache](materialized.md)
-- [Event-driven microservice](event-driven-microservice.md)
