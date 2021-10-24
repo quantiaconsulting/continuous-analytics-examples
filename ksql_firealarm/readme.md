@@ -564,3 +564,14 @@ returns
 |S1                        |2                         |2021-10-23 06:00:15+0200  |2021-10-23 06:00:16+0200  |
 |S1                        |12                        |2021-10-23 06:00:00+0200  |2021-10-23 06:00:09+0200  |
 ```
+
+#### Sending data programmatically
+
+In the folder `../datagen` you find two notebooks to send them smoke and temperature events programmatically:
+
+* Run the code in [../datagen/smoke_sensor_simulator.ipynb](https://github.com/quantiaconsulting/continuous-analytics-examples/blob/master/ksql_firealarm/datagen/smoke_sensor_simulator.ipynb) to simulate the smoke events.
+* Run the code in [../datagen/temperature_sensor_simulator.ipynb](https://github.com/quantiaconsulting/continuous-analytics-examples/blob/master/ksql_firealarm/datagen/temperature_sensor_simulator.ipynb) to simulate the temperature events.
+
+They two notebooks use [ksql-python](https://github.com/bryanyang0528/ksql-python), a python wrapper for the KSQL REST API. As you can see, it allows for easily interact with the KSQL REST API using a python library.
+
+
