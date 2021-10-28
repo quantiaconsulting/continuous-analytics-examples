@@ -167,7 +167,7 @@ MEMO: the average should change as soon as the receive a new event
 
 #### Q3 - [Logical Tumbling Window](https://docs.ksqldb.io/en/latest/concepts/time-and-windows-in-ksqldb-queries/#tumbling-window)
 
-The average temperature of the last 30 seconds every 4 seconds
+The average temperature of the last 4 seconds every 4 seconds
 
 ```
 SELECT SENSOR, AVG(temperature) AS AVG_TEMP
@@ -355,7 +355,7 @@ FROM Temperature_STREAM T
 
 ##### Discussion
 
-This query is equivalent to the EPL pattern `every a = SmokeSensorEvent(smoke=true) -> every TemperatureSensorEvent(temperature > 50, sensor=a.sensor) where timer:within(1 min)`.
+This query is equivalent to the EPL pattern `every a = SmokeSensorEvent(smoke=true) -> every TemperatureSensorEvent(temperature > 50, sensor=a.sensor) where timer:within(2 min)`.
 
 Do not expect the same performances! It is evaluated as a relational join. ksqlDB lacks the specialised data structure of Esper.
 
@@ -367,7 +367,10 @@ You can create a materialised view
 CREATE TABLE FireAlerts AS
 SELECT S.sensor AS sensor,
 		LATEST_BY_OFFSET(S.smoke) AS smoke,
-		LATEST_BY_OFFSET(T.temperature) AS temperature
+		LATEST_BY_OFFSET(S.ts) AS smoke_ts,
+		LATEST_BY_OFFSET(T.temperature) AS temperature,
+		LATEST_BY_OFFSET(T.ts) AS temperature_ts
+		
 FROM Temperature_STREAM T
   JOIN Smoke_STREAM S WITHIN 2 MINUTES
   ON S.sensor = T.sensor
@@ -405,7 +408,7 @@ FROM Temperature_STREAM T
 ```
 
 ```
-SELECT SENSOR, count(*) ,
+SELECT SENSOR, count(*) AS CNT,
 		TIMESTAMPTOSTRING(WINDOWSTART, 'yyy-MM-dd HH:mm:ssZ','UTC+2') as window_start,
        TIMESTAMPTOSTRING(WINDOWEND, 'yyy-MM-dd HH:mm:ssZ','UTC+2') as window_end
 

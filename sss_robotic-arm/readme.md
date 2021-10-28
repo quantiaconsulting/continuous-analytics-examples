@@ -1,4 +1,4 @@
-# Spark Structured Streaming - Fire alarm
+# Spark Structured Streaming - Robotic Arm
 
 Please refer to [continuous-analytics-examples/blob/master/epl_robotic-arm/readme.md](https://github.com/quantiaconsulting/continuous-analytics-examples/blob/master/epl_robotic-arm/readme.md) for the EPL version of the following queries.
 
@@ -25,7 +25,7 @@ docker-compose up -d
 1. start the data generator
   1. run the appropriate cells of `notebooks/smoke_sensor_simulator.ipynb`
   2. run the appropriate cells of `notebooks/temperature_sensor_simulator.ipynb`
-2. Walk through the cells in `notebooks/spark-structured-streaming.ipynb`
+2. Walk through the cells in `notebooks/spark-structured-streaming-Lab.ipynb`
 
 ## 3. stop the infrastructure
 
