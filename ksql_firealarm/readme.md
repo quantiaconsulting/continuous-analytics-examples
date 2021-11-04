@@ -222,6 +222,8 @@ you get a result like this:
 |S1                        |53.75                     |2021-10-23 06:00:04+0200  |2021-10-23 06:00:08+0200  |
 ```
 
+**NOTE**: windows include WINDOW_START but not WINDOW_END
+
 if you send more data within the scope of the last window: 
 
 ```
@@ -378,7 +380,8 @@ FROM Temperature_STREAM T
  T.temperature > 50 and
  S.smoke  and
  S.ts < T.ts 
- group by S.sensor;
+ group by S.sensor
+ EMIT CHANGES;
 ``` 
 
 and query it with a pull query
@@ -532,7 +535,7 @@ returns
 inserting
 
 ```   
-INSERT INTO Temperature_STREAM (sensor, temperature, ts) VALUES ('S1', 70, '2021-10-23T06:00:15+0200');
+INSERT INTO Temperature_STREAM (sensor, temperature, ts) VALUES ('S1', 70, '2021-10-23T06:00:16+0200');
 ``` 
 
 returns
