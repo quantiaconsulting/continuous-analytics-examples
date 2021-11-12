@@ -88,71 +88,120 @@ GROUP BY ID EMIT CHANGES;
 
 > A continuous query that emits the average stress level between a pick (status==goodGrasped) and a place (status==placingGood).
 
-iniziamo con una cosa più semplice
-E3.1
+ksqlDB does not support the EPL's operator `->` (that reads as followed by). As in the case of the [fire alarm](https://github.com/quantiaconsulting/continuous-analytics-examples/tree/master/ksql_firealarm), we need to use a stream-to-stream join.
 
-per ora cercate di trovare un braccio in status moving seguito dallo stesso braccio in status placing e restituire lo stress level in status moving e lo stress level in status placing
-Emanuele Della Valle
-@emanueledellavalle
-12:58
+As we discussed for [Spark Strutured Streaming](https://github.com/quantiaconsulting/continuous-analytics-examples/blob/master/sss_robotic-arm/notebooks/spark-structured-streaming-Lab.ipynb), this is an hard task and it is better to simplify it.
 
-select M.id AS ID, (M.stresslevel + p.stresslevel)/2 as AVG_StressLvl
-from RoboticArm_STREAM AS M JOIN
-     RoboticArm_STREAM_CP AS P WITHIN 7 seconds 
-     ON M.id = P.id
-where 
-M.status = 'movingGood' AND
-P.status = 'placingGood' AND
-P.ts > M.ts
+#### E3.1
+
+> A continuous query that emits the events between **a moving** (status==movingGood) and a place (status==placingGood)
+
+NOTE: no request to average and only two consecutive events
+
+You may expect the following query (that includes a self-join of the RoboticArm_STREAM) to run.
+
+```
+select *
+from RoboticArm_STREAM AS M 
+     JOIN RoboticArm_STREAM AS P WITHIN 7 seconds 
+     ON M.id = P.id 
 EMIT CHANGES;
+```
 
-E3.2
-Ora potete trovare un braccio in status goodGrasped sseguito dallo stesso braccio in status moving seguito dallo stesso braccio in status placing e restituire l'id del braccio e (stressLevelGoodGrasped+stressLevelMoving+stressLevelPlacing)/3 (che è la media degli stress level nei tre stati)
+If you try to register the query above, the ksqlCLI answers with an error: `Can not join 'ROBOTICARM_STREAM' to 'ROBOTICARM_STREAM': self joins are not yet supported`. This is indeed a limitation of the underlying [kafka streams API](https://github.com/confluentinc/ksql/issues/2030).
 
-select M.id AS ID, (G.stresslevel + M.stresslevel + p.stresslevel)/3 as AVG_StressLvl
-from RoboticArm_STREAM AS G JOIN
-     RoboticArm_STREAM_CP AS M WITHIN 3 seconds
-     ON G.id = M.id JOIN
-     RoboticArm_STREAM_CP2 AS P WITHIN 7 seconds 
-     ON M.id = P.id
-where 
-G.status = 'goodGrasped' AND
-M.status = 'movingGood' AND
-P.status = 'placingGood' AND
-M.ts > G.ts AND
-P.ts > M.ts
-EMIT CHANGES;
-
-per più informazioni sul multi-way join https://kafka-tutorials.confluent.io/multi-joins/ksql.html e https://docs.ksqldb.io/en/latest/developer-guide/joins/join-streams-and-tables/#n-way-joins
-
-#### soffitta
+The way out it is to duplicate the stream and the topic as follows:
 
 ```
 CREATE STREAM RoboticArm_STREAM_CP AS SELECT * FROM RoboticArm_STREAM EMIT CHANGES;
+```
 
-CREATE STREAM E3_1 AS SELECT *
-FROM RoboticArm_STREAM M
-  JOIN RoboticArm_STREAM_CP P WITHIN 7 SECONDS
-  ON M.id = P.id
- WHERE 
- M.status ='movingGood' AND
- P.status ='placingGood' AND 
-  P.ts > M.ts 
- EMIT CHANGES;
+so that the query above becomes:
+
+```
+select *
+from RoboticArm_STREAM AS M 
+     JOIN RoboticArm_STREAM_CP AS P WITHIN 7 seconds 
+     ON M.id = P.id 
+EMIT CHANGES;
+```
+
+#### E3.2
+
+> A continuous query that emits the events between a **pick (status==goodGrasped)** and a place (status==placingGood)
+
+NOTE: I'm adding one more type of event, good grasped that should appear before any moving
+
+Let's duplicate once more the topic:
+
+```
+CREATE STREAM RoboticArm_STREAM_CP2 AS SELECT * FROM RoboticArm_STREAM EMIT CHANGES;
+```
+
+So that the query becomes:
+
+```
+select * 
+from RoboticArm_STREAM AS G JOIN 
+       RoboticArm_STREAM_CP AS M WITHIN 3 seconds 
+       ON G.id = M.id 
+     JOIN RoboticArm_STREAM_CP2 AS P WITHIN 7 seconds 
+       ON M.id = P.id 
+ where G.status = 'goodGrasped' AND M.status = 'movingGood' AND P.status = 'placingGood' 
+       AND M.ts > G.ts AND P.ts > M.ts EMIT CHANGES;
+```
+
+#### E3.3
+
+> A continuous query that emits the average stress level between a pick (status==goodGrasped) and a place (status==placingGood)
+
+NOTE: the original question
+
+```
+select M.id AS ID, (G.stresslevel + M.stresslevel + p.stresslevel)/3 as AVG_StressLvl 
+from RoboticArm_STREAM AS G JOIN 
+       RoboticArm_STREAM_CP AS M WITHIN 3 seconds 
+       ON G.id = M.id 
+     JOIN RoboticArm_STREAM_CP2 AS P WITHIN 7 seconds 
+       ON M.id = P.id 
+ where G.status = 'goodGrasped' AND M.status = 'movingGood' AND P.status = 'placingGood' 
+       AND M.ts > G.ts AND P.ts > M.ts EMIT CHANGES;
+```
+
+### E4
+
+> A continuous query that returns the robotic arms that,
+>	
+>  * in less than 10 second,
+>  * picked a good while safely operating,
+>  * moved it while the controller was raising a warning, and
+>  * placed it while safely operating again.
+
+```
+CREATE STREAM warning AS
+select M.id AS ID, M.ts, g.ts, UNIX_TIMESTAMP(P.ts) - UNIX_TIMESTAMP(g.ts) AS diff
+from RoboticArm_STREAM AS G JOIN 
+		RoboticArm_STREAM_CP AS M WITHIN 10 seconds ON G.id = M.id JOIN
+		RoboticArm_STREAM_CP2 AS P WITHIN 10 seconds ON M.id = P.id 
+ where G.status = 'goodGrasped' AND G.stressLevel < 7 AND
+       M.status = 'movingGood' AND M.stressLevel > 6 AND M.stressLevel < 9 AND
+       P.status = 'placingGood' AND P.stressLevel < 7 AND
+       M.ts > G.ts AND P.ts > M.ts AND
+       UNIX_TIMESTAMP(P.ts) - UNIX_TIMESTAMP(g.ts) < 10*1000 
+EMIT CHANGES;
+```
+NOTE: we imposed the constrain *in less than 10 second* using the condition `UNIX_TIMESTAMP(P.ts) - UNIX_TIMESTAMP(g.ts) < 10*1000 `
 
 
-SELECT P_id, P_ts, count(*) AS CNT
-FROM E3_1 
-GROUP BY P_id, P_ts 
-EMIT changes;
+### E5
 
-SELECT *
-FROM RoboticArm_STREAM M
-  JOIN RoboticArm_STREAM_CP P WITHIN 1 SECONDS
-  ON M.id = P.id
- WHERE 
- M.status ='movingGood' AND
- P.status ='placingGood' AND 
-  P.ts > M.ts 
- EMIT CHANGES;
+> A continuous query that monitors the results of the previous one (i.e., E4) and counts how many times each robotic arm is present in the stream over a window of 10 seconds updating the counting every 2 seconds.
 
+```
+SELECT id, count(*) as CNT, 
+		TIMESTAMPTOSTRING(WINDOWSTART, 'yyy-MM-dd HH:mm:ssZ','UTC+2') as window_start,
+		TIMESTAMPTOSTRING(WINDOWEND, 'yyy-MM-dd HH:mm:ssZ','UTC+2') as window_end
+FROM warning WINDOW HOPPING (SIZE 10 SECONDS, ADVANCE BY 2 SECONDS)
+GROUP BY ID
+EMIT CHANGES;
+```
