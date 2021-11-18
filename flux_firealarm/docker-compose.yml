@@ -15,9 +15,9 @@ services:
     environment:
       INFLUX_HOSTNAME: influxdb
       INFLUX_USERNAME: admin
-      INFLUX_PASSWORD: quantia-analytics
+      INFLUX_PASSWORD: influxdb
       INFLUX_TOKEN: "d2VsY29tZQ=="
-      INFLUX_ORGANIZATION: usde
+      INFLUX_ORGANIZATION: sda
       INFLUX_BUCKET: training
       INFLUX_RETENTION_PERIOD: 0
       INFLUX_PORT: 8086
@@ -31,4 +31,4 @@ services:
     environment:
         - GRANT_SUDO=yesd
         - JUPYTER_ENABLE_LAB=yes
-        - JUPYTER_TOKEN=quantia-analytics
+        - JUPYTER_TOKEN=sda

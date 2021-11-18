@@ -9,16 +9,15 @@
 ### Open InfluxDB 2.0
 
 1. Open [http://localhost:8086](http://localhost:8086)
-2. set up the instance:
-	* org: `usde`
-	* bucket: `training`
-3. Go to Data > Tokens and generate a "Read/Write Token" for writing in the bucket `training`
+2. log in:
+	* user: admin
+	* psw: influxdb 
 
 ### start the data generator
 
 1.  Go to [http://localhost:8888](http://localhost:8888)
 2.  Password: quantia-analytics
-3.  Go to folder: work/datagen
+3.  Go to folder: work
 4.  Open the two notebooks
 5.  Enter the token in the notebooks
 6.  Run appropriate cells
@@ -29,7 +28,7 @@
 
 ### Q0
 
-sensors that measure a temperature above 20 C
+sensors that measure a temperature above 20 C (was 50 in EPL)
 
 ```
 from(bucket: "training")
@@ -40,97 +39,66 @@ from(bucket: "training")
   |> filter(fn: (r) => r._value > 20)
 ```
 
-
-
-### Q1
-sensors that observe smoke (smoke either true or false)
-
-```
-from(bucket: "training")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
-  |> filter(fn: (r) => r._measurement == "SmokeSensorEvent")
-  |> filter(fn: (r) => r._field == "smoke")
-  |> filter(fn: (r) => r.sensor == "S1")
-```
-
-sensors that observe smoke (smoke=true)
-
-```
-from(bucket: "training")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
-  |> filter(fn: (r) => r._measurement == "SmokeSensorEvent")
-  |> filter(fn: (r) => r._field == "smoke")
-  |> filter(fn: (r) => r.sensor == "S1")
-  |> filter(fn: (r) => r._value == true )
-```
-
-### Q2 - Avg
+### Q1 - Avg
 
 the average temperature observed by the sensors
 
 ```
 from(bucket: "training")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> range(start: v.timeRangeStart)
   |> filter(fn: (r) => r._measurement == "TemperatureSensorEvent")
   |> filter(fn: (r) => r._field == "temperature")
   |> filter(fn: (r) => r.sensor == "S1")
   |> mean()
 ```
 
-:-/ not exaclty ... this is an average other a fixed window
+Landmark windows in Flux allows to express landmark windows by specifying only the `start` of a `range` function. 
 
-Flux does not have landmark windows
+### Q2 - Logical Sliding Window
 
-### Q3 - Logical Sliding Window
+The average temperature observed by each sensor in the last 4 seconds
 
-Partially supported
+Partially supported. Flux allows to specify relative windows that moves on every time you evaluate them.
 
 ```
 from(bucket: "training")
-  |> range(start: -1m)
+  |> range(start: -4s)
   |> filter(fn: (r) => r._measurement == "TemperatureSensorEvent")
   |> filter(fn: (r) => r._field == "temperature")
   |> filter(fn: (r) => r.sensor == "S1")
   |> mean()
 ```
 
-NOTE: it does not properly *slide*, it is executed every time you want
+### Q3 - Logical Tumbling Window
 
-
-### Q4 - Logical Tumbling Window
-
-the average temperature observed by the sensors in the last minute
+the average temperature observed by the sensors in the 4 seconds
 
 ```
 from(bucket: "training")
-  |> range(start: -1m)
+  |> range(start: -4s)
   |> filter(fn: (r) => r._measurement == "TemperatureSensorEvent")
   |> filter(fn: (r) => r._field == "temperature")
   |> filter(fn: (r) => r.sensor == "S1")
-  |> mean()
+  |> aggregateWindow(every: 4s, fn: mean, createEmpty: false)
 ```
 
-NOTE: save as a Task, but it is not so easy:
-
-1. `_time` is missing ... let's add it using `map()`
-2. how would you distinguish the result from the original data? ... let's overwrite the `_measurament` with `TemperatureSensorEventAgv1min"` using another `map()`
+NOTE: save as a Task, but in order to distinguish the result from the original data, we overwrite the `_measurament` with `TemperatureSensorEventAgv4s"` using another `map()`
 
 
 ```
 option task = { 
-  name: "Q4 - Logical Tumbling Window",
-  every: 1m,
+  name: "Q3 - Logical Tumbling Window",
+  every: 4s,
 }
 
 from(bucket: "training")
-  |> range(start: -1m, stop: now())
+  |> range(start: -4s)
   |> filter(fn: (r) => r._measurement == "TemperatureSensorEvent")
   |> filter(fn: (r) => r._field == "temperature")
   |> filter(fn: (r) => r.sensor == "S1")
-  |> mean()
-  |> map(fn: (r) => ({ r with _measurement: "TemperatureSensorEventAgv1min" }))
-  |> map(fn: (r) => ({ r with _time: r._stop}))
-  |> to(bucket: "training", org: "usde")
+  |> aggregateWindow(every: 4s, fn: mean, createEmpty: false)
+  |> map(fn: (r) => ({ r with _measurement: "TemperatureSensorEventAgv4s" }))  
+  |> to(bucket: "training", org: "sda")
 ```
 
 optionally add a cell to the dashbaord
@@ -138,17 +106,16 @@ optionally add a cell to the dashbaord
 ```
 from(bucket: "training")
   |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
-  |> filter(fn: (r) => r._measurement == "TemperatureSensorEventAgv1min")
+  |> filter(fn: (r) => r._measurement == "TemperatureSensorEventAgv4s")
   |> filter(fn: (r) => r._field == "temperature")
   |> filter(fn: (r) => r.sensor == "S1")
-  |> last()
 ```
 
-### Q5 - Physical Sliding Window
+### Q4 - Physical Sliding Window
 
-the average temperature observed by the sensors in the last 5 events
+the average temperature observed by the sensors in the last 4 events
 
-Partially supported
+Partially supported. Flux allows to specify physical sliding windows using `movingAverage()`, but the window moves on every time you evaluate the query.
 
 ```
 from(bucket: "training")
@@ -156,104 +123,44 @@ from(bucket: "training")
   |> filter(fn: (r) => r._measurement == "TemperatureSensorEvent")
   |> filter(fn: (r) => r._field == "temperature")
   |> filter(fn: (r) => r.sensor == "S1")
-  |> tail(n: 5)
-  |> mean()
+  |> movingAverage(n: 4)
 ```
 
-NOTE: it does not properly *slide*, it is executed every time you want
+As for Q3, you can rename the measurement and register the query as a task.
 
-You can get a reasonable approximation using `movingAverage(n: 5)`
+```
+from(bucket: "training")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r._measurement == "TemperatureSensorEvent")
+  |> filter(fn: (r) => r._field == "temperature")
+  |> filter(fn: (r) => r.sensor == "S1")
+  |> movingAverage(n: 4)
+  |> map(fn: (r) => ({ r with _measurement: "TemperatureSensorEventAgv4events" }))  
+```
 
 
-### Q6 - Physical Tumbling Window
+### Q5 - Physical Tumbling Window
 
-the average temperature observed by the sensors in the last 5 events updating the window after 5 events
+the average temperature observed by the sensors in the last 4 events updating the window after 4 events
 
 ***Not supported***
 
-You may run the average temperature observed by the sensors in the last 5 events updating the window after 1 min
+### Q6 - Logical Hopping Window
 
-```
-option task = { 
-  name: "Q6 - Physical Tumbling Window",
-  every: 1m,
-}
+The average temperature of the last 4 seconds every 2 seconds
 
-from(bucket: "training")
-  |> range(start: -1m, stop: now())
-  |> filter(fn: (r) => r._measurement == "TemperatureSensorEvent")
-  |> filter(fn: (r) => r._field == "temperature")
-  |> filter(fn: (r) => r.sensor == "S1")
-  |> tail(n: 5)
-  |> mean()
-  |> map(fn: (r) => ({ r with _measurement: "TemperatureSensorEventAgvLast5" }))
-  |> map(fn: (r) => ({ r with _time: r._stop}))
-  |> to(bucket: "training", org: "usde")
-```
-
-optionally add a cell to the dashbaord
+Partially supported. Flux allows to specify Logical Hopping Windows using `timedMovingAverage()`, but the window moves on every time you evaluate the query.
 
 ```
 from(bucket: "training")
   |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
-  |> filter(fn: (r) => r._measurement == "TemperatureSensorEventAgvLast5")
-  |> filter(fn: (r) => r._field == "temperature")
-  |> filter(fn: (r) => r.sensor == "S1")
-  |> last()
-```
-
-### Q7 - Logical Hopping Window
-
-```
-from(bucket: "training")
-  |> range(start: -1m, stop: now())
   |> filter(fn: (r) => r._measurement == "TemperatureSensorEvent")
   |> filter(fn: (r) => r._field == "temperature")
   |> filter(fn: (r) => r.sensor == "S1")
-  |> aggregateWindow(every: 5s, fn: mean)
+  |> timedMovingAverage( every: 4s, period: 2s) 
 ```
 
-Note that it does not create duplicates, but empty windows. To remove them use `createEmpty: false`
-
-```
-from(bucket: "training")
-  |> range(start: -1m, stop: now())
-  |> filter(fn: (r) => r._measurement == "TemperatureSensorEvent")
-  |> filter(fn: (r) => r._field == "temperature")
-  |> filter(fn: (r) => r.sensor == "S1")
-  |> aggregateWindow(every: 5s, fn: mean, createEmpty: false)
-```
-
-... and save it as a task without forgetting to change the `_measurement`
-
-```
-option task = { 
-  name: "Q7 - Logical Hopping Window",
-  every: 1m,
-}
-
-from(bucket: "training")
-  |> range(start: -1m, stop: now())
-  |> filter(fn: (r) => r._measurement == "TemperatureSensorEvent")
-  |> filter(fn: (r) => r._field == "temperature")
-  |> filter(fn: (r) => r.sensor == "S1")
-  |> aggregateWindow(every: 5s, fn: mean, createEmpty: false)
-  |> map(fn: (r) => ({ r with _measurement: "TemperatureSensorEventSlidingAgvLast5s" }))
-  |> to(bucket: "training", org: "usde")
-```
-
-optionally add a cell to the dashbaord
-
-```
-from(bucket: "training")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
-  |> filter(fn: (r) => r._measurement == "TemperatureSensorEventSlidingAgvLast5s")
-  |> filter(fn: (r) => r._field == "temperature")
-  |> filter(fn: (r) => r.sensor == "S1")
-  |> last()
-```
-
-### Q8 - Stream-to-Stream Join
+### Q7 - Stream-to-Stream Join
 
 See the lecture notes. Here, as in the previous pratical sessions, we discuss the ability of FLux to encode EPL patterns. Differently from Spark Structured Streaming and KSQL, FLux can express `every (a = SmokeSensorEvent(smoke=true) -> TemperatureSensorEvent(temperature > 50, sensor=a.sensor) where timer:within(1 min)`. 
 
