@@ -4,7 +4,18 @@
 ## set up
 ### start up the infrastrucutre
 
-`docker-compose up -d`
+```docker-compose up -d```
+
+### start the data generator
+
+1.  Go to [http://localhost:8888](http://localhost:8888)
+2.  Password: sda
+3.  Go to folder: work
+4.  Open the two notebooks
+5.  Go to the temperature_sensor_simulator.ipynb notebook and run the first 4 cells 
+6. 	 Go to the smoke_sensor_simulator.ipynb notebook and run the first 4 cells
+
+NOTE: sending temperature and smoke events that do not allow detecting fire
 
 ### Open InfluxDB 2.0
 
@@ -13,18 +24,15 @@
 	* user: admin
 	* psw: influxdb 
 
-### start the data generator
-
-1.  Go to [http://localhost:8888](http://localhost:8888)
-2.  Password: quantia-analytics
-3.  Go to folder: work
-4.  Open the two notebooks
-5.  Enter the token in the notebooks
-6.  Run appropriate cells
 
 ## queries
 
-**NOTE**: for continuous execution either save as cell in a dashbaord and activate auto-refresh or as a task
+### NOTES
+
+* use the explorer panel selecting the script editor
+* for a good visualization:
+	* set the time range selector to `Past 5 minutes`
+	* choose the appropriate graph from the drop down menu
 
 ### Q0
 
@@ -38,6 +46,8 @@ from(bucket: "training")
   |> filter(fn: (r) => r.sensor == "S1")
   |> filter(fn: (r) => r._value > 20)
 ```
+
+NOTE: best view using graph
 
 ### Q1 - Avg
 
@@ -54,6 +64,11 @@ from(bucket: "training")
 
 Landmark windows in Flux allows to express landmark windows by specifying only the `start` of a `range` function. 
 
+NOTE:
+ 
+* best view using: Gauge
+* you may want to save the query as a cell in a dashboard
+
 ### Q2 - Logical Sliding Window
 
 The average temperature observed by each sensor in the last 4 seconds
@@ -69,6 +84,11 @@ from(bucket: "training")
   |> mean()
 ```
 
+NOTE:
+ 
+* best view using: Gauge
+* you may want to save the query as a cell in a dashboard
+
 ### Q3 - Logical Tumbling Window
 
 the average temperature observed by the sensors in the 4 seconds
@@ -82,7 +102,7 @@ from(bucket: "training")
   |> aggregateWindow(every: 4s, fn: mean, createEmpty: false)
 ```
 
-NOTE: save as a Task, but in order to distinguish the result from the original data, we overwrite the `_measurament` with `TemperatureSensorEventAgv4s"` using another `map()`
+NOTE: save as a Task, but in order to distinguish the result from the original data, we overwrite the `_measurament` with `TemperatureSensorEventAvg4s"` using another `map()`
 
 
 ```
@@ -97,7 +117,7 @@ from(bucket: "training")
   |> filter(fn: (r) => r._field == "temperature")
   |> filter(fn: (r) => r.sensor == "S1")
   |> aggregateWindow(every: 4s, fn: mean, createEmpty: false)
-  |> map(fn: (r) => ({ r with _measurement: "TemperatureSensorEventAgv4s" }))  
+  |> map(fn: (r) => ({ r with _measurement: "TemperatureSensorEventAvg4s" }))  
   |> to(bucket: "training", org: "sda")
 ```
 
@@ -129,15 +149,22 @@ from(bucket: "training")
 As for Q3, you can rename the measurement and register the query as a task.
 
 ```
-from(bucket: "training")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
-  |> filter(fn: (r) => r._measurement == "TemperatureSensorEvent")
-  |> filter(fn: (r) => r._field == "temperature")
-  |> filter(fn: (r) => r.sensor == "S1")
-  |> movingAverage(n: 4)
-  |> map(fn: (r) => ({ r with _measurement: "TemperatureSensorEventAgv4events" }))  
-```
+option v = {timeRangeStart: -10s, timeRangeStop: now()}
+option task = {name: "Q4 - Physical Sliding Window", every: 10s}
 
+from(bucket: "training")
+	|> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+	|> filter(fn: (r) =>
+		(r._measurement == "TemperatureSensorEvent"))
+	|> filter(fn: (r) =>
+		(r._field == "temperature"))
+	|> filter(fn: (r) =>
+		(r.sensor == "S1"))
+	|> movingAverage(n: 4)
+	|> map(fn: (r) =>
+		({r with _measurement: "TemperatureSensorEventAvg4events"}))
+	|> to(bucket: "training", org: "sda")
+```
 
 ### Q5 - Physical Tumbling Window
 
@@ -165,25 +192,22 @@ from(bucket: "training")
 See the lecture notes. Here, as in the previous pratical sessions, we discuss the ability of FLux to encode EPL patterns. Differently from Spark Structured Streaming and KSQL, FLux can express `every (a = SmokeSensorEvent(smoke=true) -> TemperatureSensorEvent(temperature > 50, sensor=a.sensor) where timer:within(1 min)`. 
 
 ```
+temp = from(bucket: "training")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r._measurement == "TemperatureSensorEvent")
+  |> filter(fn: (r) => r._field == "temperature")
+  |> filter(fn: (r) => r.sensor == "S1")
+  |> aggregateWindow(every: 3s, fn: mean)
+
+
 smoke = from(bucket: "training")
   |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
   |> filter(fn: (r) => r._measurement == "SmokeSensorEvent")
   |> filter(fn: (r) => r._field == "smoke")
   |> filter(fn: (r) => r.sensor == "S1")
-  |> filter(fn: (r) => r._value == true )
-  |> tail(n: 2)
+  |> aggregateWindow(every: 3s, fn: last)
 
-highTemp = from(bucket: "training")
-  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
-  |> filter(fn: (r) => r._measurement == "TemperatureSensorEvent")
-  |> filter(fn: (r) => r._field == "temperature")
-  |> filter(fn: (r) => r.sensor == "S1")
-  |> filter(fn: (r) => r._value > 50)  
-  |> last()
-
-join(tables: {s: smoke, t: highTemp}, on: ["sensor"], method: "inner")
-  |> filter(fn: (r) => r._time_s < r._time_t)
-  |> filter(fn: (r) => uint(v: r._time_t) - uint(v: r._time_s) < 60*1000*1000*1000)
+join(tables: {key1: smoke, key2: temp}, on: ["_time"], method: "inner")
 ```
 
 **IMPORTANT** To detect fire, run the appropriate cells in the data generators.
@@ -195,36 +219,22 @@ Register Q8 as a task remembering the data model un InfluxDB (`_measurement`, `_
 ```
 option task = {name: "FireAlarm", every: 1m}
 
-smoke = from(bucket: "training")
-	|> range(start: -1m, stop: now())
-	|> filter(fn: (r) =>
-		(r._measurement == "SmokeSensorEvent"))
-	|> filter(fn: (r) =>
-		(r._field == "smoke"))
-	|> filter(fn: (r) =>
-		(r.sensor == "S1"))
-	|> filter(fn: (r) =>
-		(r._value == true))
-	|> tail(n: 2)
-highTemp = from(bucket: "training")
-	|> range(start: -1m, stop: now())
-	|> filter(fn: (r) =>
-		(r._measurement == "TemperatureSensorEvent"))
-	|> filter(fn: (r) =>
-		(r._field == "temperature"))
-	|> filter(fn: (r) =>
-		(r.sensor == "S1"))
-	|> filter(fn: (r) =>
-		(r._value > 50))
-	|> last()
+temp = from(bucket: "training")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r._measurement == "TemperatureSensorEvent")
+  |> filter(fn: (r) => r._field == "temperature")
+  |> filter(fn: (r) => r.sensor == "S1")
+  |> aggregateWindow(every: 3s, fn: mean)
 
-join(tables: {s: smoke, t: highTemp}, on: ["sensor"], method: "inner")
-	|> filter(fn: (r) =>
-		(r._time_s < r._time_t))
-	|> filter(fn: (r) =>
-		(uint(v: r._time_t) - uint(v: r._time_s) < int(v: 60 * 1000 * 1000 * 1000)))
-	|> map(fn: (r) =>
-		({r with _time: r._time_s}))
+
+smoke = from(bucket: "training")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r._measurement == "SmokeSensorEvent")
+  |> filter(fn: (r) => r._field == "smoke")
+  |> filter(fn: (r) => r.sensor == "S1")
+  |> aggregateWindow(every: 3s, fn: last)
+
+join(tables: {s: smoke, t: temp}, on: ["_time"], method: "inner")
 	|> map(fn: (r) =>
 		({r with _measurement: "fireAlarm"}))
 	|> map(fn: (r) =>
@@ -233,7 +243,7 @@ join(tables: {s: smoke, t: highTemp}, on: ["sensor"], method: "inner")
 		({r with _value: true}))
 	|> rename(columns: {_value_s: "smoke", _value_t: "temperature"})
 	|> keep(columns: ["_time", "sensor", "_measurement", "smoke", "temperature", "_field", "_value"])
-	|> to(bucket: "training", org: "usde")
+  |> to(bucket: "training", org: "sda")
 ```
 
 ... and now the last query
@@ -245,7 +255,105 @@ from(bucket: "training")
   |> aggregateWindow(every: 1m, fn: count)
 ```
 
-to register as a cell in the dashboard
+to register as a cell in the dashboard.
+
+### The resulting tasks and dashboard
+
+Here are the exports of:
+* task [Q3 - Logical Tumbling Window](./exports/tasks/q3_-_logical_tumbling_window.json) 
+* task [Q4 - Physical Sliding Window](./exports/tasks/q4_-_physical_sliding_window.json) 
+* task [fire-alarm](./exports/tasks/firealarm.json) 
+* the [dashboard](./exports/dashboards/fire-alarm.json).
+
+![](./img/dashboad-fire-alarm.png)
+
+### Bonus Content 
+#### Anomaly Detection
+
+Anomaly detection is a challenging data analysis task. Anomalies can represent spurious data to clean out and important patterns to detect.
+This generality makes anomaly detection a powerful tool used in network security, remote sensing, fault detection, and many other domains
+
+The intuition behind Anomaly Detection is simple:  
+
+> Considering the distribution of the data point in a time series, anomalous points are anomalies, a.k.a. outliers.
+
+![](https://cerijayne.files.wordpress.com/2011/10/outliersss.png)
+
+Let’s operationalize this intuition using the Z score
+
+![](https://upload.wikimedia.org/wikipedia/commons/2/25/The_Normal_Distribution.svg)
+
+Hereafter, you find the code of a task that computes the 
   
-  
-  
+```
+import "date"
+import "math"
+
+option v = {bucket: "", timeRangeStart: -15m, timeRangeStop: now()}
+option task = {name: "Zscore of sensor observations", every: 5m}
+
+movingAvg = from(bucket: "training")
+	|> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+	|> filter(fn: (r) =>
+		(r._measurement == "TemperatureSensorEvent"))
+	|> filter(fn: (r) =>
+		(r._field == "temperature"))
+	|> filter(fn: (r) =>
+		(r.sensor == "S1"))
+	|> aggregateWindow(every: 5m, fn: mean, createEmpty: false)
+	|> filter(fn: (r) =>
+		(r._stop != r._time))
+	|> drop(columns: ["_start", "_stop", "host"])
+movingStddev = from(bucket: "training")
+	|> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+	|> filter(fn: (r) =>
+		(r._measurement == "TemperatureSensorEvent"))
+	|> filter(fn: (r) =>
+		(r._field == "temperature"))
+	|> filter(fn: (r) =>
+		(r.sensor == "S1"))
+	|> aggregateWindow(every: 5m, fn: stddev, createEmpty: false)
+	|> filter(fn: (r) =>
+		(r._stop != r._time))
+	|> drop(columns: ["_start", "_stop", "host"])
+join1 = join(tables: {avg: movingAvg, stddev: movingStddev}, on: ["_time"], method: "inner")
+	|> rename(columns: {_field_avg: "_field"})
+	|> rename(columns: {_measurement_avg: "_measurement"})
+	|> rename(columns: {sensor_avg: "sensor"})
+allData = from(bucket: "training")
+	|> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+	|> filter(fn: (r) =>
+		(r._measurement == "TemperatureSensorEvent"))
+	|> filter(fn: (r) =>
+		(r._field == "temperature"))
+	|> filter(fn: (r) =>
+		(r.sensor == "S1"))
+	|> drop(columns: ["_start", "_stop", "host"])
+join2 = join(tables: {all: allData, j: join1}, on: ["_field", "_measurement", "sensor"])
+	|> filter(fn: (r) =>
+		(uint(v: r._time_all) - uint(v: r._time_j) > 0))
+	|> filter(fn: (r) =>
+		(uint(v: r._time_all) - uint(v: r._time_j) <= 5 * 60 * 1000000000))
+	|> rename(columns: {_time_all: "_time"})
+	|> map(fn: (r) =>
+		({r with _value: math.abs(x: (r._value - r._value_avg) / r._value_stddev)}))
+	|> map(fn: (r) =>
+		({r with _field: "zScore"}))
+	|> map(fn: (r) =>
+		({r with _measurement: "TemperatureSensorEventZscore"}))
+
+join2
+	|> to(bucket: "training", org: "sda")
+```
+
+Using [this export of the Task](./exports/tasks/zscore_of_sensor_observations.json), [this dashboard](./exports/dashboards/anomaly_detection.json) and running the appropriate cell in the [temperature data generator], you should get something that looks like the following figure.
+
+![](./img/dashboard-anomaly.png)
+
+## Tear down the stack
+
+When you're done, tear down the stack by running:
+
+```
+docker-compose down
+```

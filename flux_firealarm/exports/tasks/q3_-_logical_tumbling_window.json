@@ -1,0 +1,26 @@
+{
+ "meta": {
+  "version": "1",
+  "type": "task",
+  "name": "Q3 - Logical Tumbling Window-Template",
+  "description": "template created from task: Q3 - Logical Tumbling Window"
+ },
+ "content": {
+  "data": {
+   "type": "task",
+   "attributes": {
+    "status": "active",
+    "name": "Q3 - Logical Tumbling Window",
+    "flux": "\n\noption task = { \n  name: \"Q3 - Logical Tumbling Window\",\n  every: 4s,\n}\n\nfrom(bucket: \"training\")\n  |> range(start: -4s)\n  |> filter(fn: (r) => r._measurement == \"TemperatureSensorEvent\")\n  |> filter(fn: (r) => r._field == \"temperature\")\n  |> filter(fn: (r) => r.sensor == \"S1\")\n  |> aggregateWindow(every: 4s, fn: mean, createEmpty: false)\n  |> map(fn: (r) => ({ r with _measurement: \"TemperatureSensorEventAvg4s\" }))\n  |> to(bucket: \"training\", org: \"sda\")",
+    "every": "4s"
+   },
+   "relationships": {
+    "label": {
+     "data": []
+    }
+   }
+  },
+  "included": []
+ },
+ "labels": []
+}

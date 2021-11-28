@@ -1,0 +1,26 @@
+{
+ "meta": {
+  "version": "1",
+  "type": "task",
+  "name": "Q4 - Physical Sliding Window-Template",
+  "description": "template created from task: Q4 - Physical Sliding Window"
+ },
+ "content": {
+  "data": {
+   "type": "task",
+   "attributes": {
+    "status": "active",
+    "name": "Q4 - Physical Sliding Window",
+    "flux": "option v = {timeRangeStart: -1h, timeRangeStop: now()}\noption task = {name: \"Q4 - Physical Sliding Window\", every: 10s}\n\nfrom(bucket: \"training\")\n\t|> range(start: v.timeRangeStart, stop: v.timeRangeStop)\n\t|> filter(fn: (r) =>\n\t\t(r._measurement == \"TemperatureSensorEvent\"))\n\t|> filter(fn: (r) =>\n\t\t(r._field == \"temperature\"))\n\t|> filter(fn: (r) =>\n\t\t(r.sensor == \"S1\"))\n\t|> movingAverage(n: 4)\n\t|> map(fn: (r) =>\n\t\t({r with _measurement: \"TemperatureSensorEventAvg4events\"}))\n\t|> to(bucket: \"training\", org: \"sda\")",
+    "every": "10s"
+   },
+   "relationships": {
+    "label": {
+     "data": []
+    }
+   }
+  },
+  "included": []
+ },
+ "labels": []
+}
