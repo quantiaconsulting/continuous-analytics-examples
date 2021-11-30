@@ -2,16 +2,16 @@
 version: '3'
 services:
   influxdb:
-    image: influxdb:2.0.4
+    image: influxdb:2.1.1
     volumes:
       - $PWD/data:/var/lib/influxdb2
     environment:
       DOCKER_INFLUXDB_INIT_MODE: setup
       DOCKER_INFLUXDB_INIT_USERNAME: admin
-      DOCKER_INFLUXDB_INIT_PASSWORD: quantia-analytics
-      DOCKER_INFLUXDB_INIT_ORG: quantia
+      DOCKER_INFLUXDB_INIT_PASSWORD: influxdb
+      DOCKER_INFLUXDB_INIT_ORG: sda
       DOCKER_INFLUXDB_INIT_BUCKET: training
-      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: qc-token
+      DOCKER_INFLUXDB_INIT_ADMIN_TOKEN: sda-token
     ports:
       - "8086:8086"
 
@@ -24,4 +24,4 @@ services:
     environment:
         - GRANT_SUDO=yes
         - JUPYTER_ENABLE_LAB=yes
-        - JUPYTER_TOKEN=quantia-analytics
+        - JUPYTER_TOKEN=sda
