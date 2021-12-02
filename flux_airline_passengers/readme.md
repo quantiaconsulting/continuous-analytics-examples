@@ -122,13 +122,9 @@ original = from(bucket: "training")
   |> filter(fn: (r) => r["_field"] == "passengers")
   |> map(fn: (r) => ({ r with _value: float(v: r._value) }))
 
-original |> yield(name: "original")
-
 trend = original   
 |> statsmodels.linearRegression()
 |> map(fn: (r) => ({ r with _value: float(v: r.y_hat) }))
-
-trend |> yield(name: "trend")
 
 trend |> map(fn: (r) => ({ r with _value: r.y - r.y_hat }))
 |> yield(name: "detrend")
