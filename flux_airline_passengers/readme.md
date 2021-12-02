@@ -11,23 +11,20 @@
 1. Open [http://localhost:8086](http://localhost:8086)
 2. Use the following credentials:
   * username: `admin`
-	* password: `quantia-analytics`
-3. Set up the instance:
-	* org: `quantia`
-	* bucket: `training`
+	* password: `influxdb`
 
 ### start the data generator
 
 1.  Go to [http://localhost:8888](http://localhost:8888)
-2.  Password: quantia-analytics
-3.  Go to folder: work/datagen
+2.  Password: `sda`
+3.  Go to folder: `work/`
 4.  Open the notebook
-5.  Enter the token in the notebooks
-    * For local influxdb instance `qc-token` as token
-    * For cloud instance: Go to Data > Tokens and generate a "Read/Write Token" for writing in the bucket `training`
-6.  Run appropriate cells
 
-## show data
+## ingest & show data
+
+In Jupyter Lab at [http://localhost:8888](http://localhost:8888) open the `airline_passengers_datagen.ipynb` notebook and run all cells.
+
+Go to the explorer pane of InfluxDB [http://localhost:8086](http://localhost:8086) and write:
 
 ```
 from(bucket: "training")
@@ -35,6 +32,12 @@ from(bucket: "training")
   |> filter(fn: (r) => r["_measurement"] == "airline-train")
   |> filter(fn: (r) => r["_field"] == "passengers")
 ```  
+
+the results is
+
+![](img/air-passengers.png)
+
+NOTE: the data spans from january 1949 to december 1960, but they are actualized and compressed 
 
 ## differentiate
 
@@ -50,6 +53,10 @@ original
   |> difference(nonNegative: false, columns: ["_value"])
   |> yield(name: "diff")
 ```
+
+the result is
+
+![](img/differentiated.png)
 
 ## de-trend
 
@@ -71,6 +78,10 @@ original
 |> map(fn: (r) => ({ r with _value: float(v: r.y_hat) }))
 |> yield(name: "linreg")
 ```
+
+the result is
+
+![](img/lr.png)
 
 ### de-trend
 
@@ -94,6 +105,10 @@ trend |> yield(name: "trend")
 trend |> map(fn: (r) => ({ r with _value: r.y - r.y_hat }))
 |> yield(name: "detrend")
 ```
+
+the result is 
+
+![](img/detrended.png)
 
 
 ## de-trended vs. differentiated
@@ -125,7 +140,9 @@ diff
   |> yield(name: "diff")
 ```
 
-![](img/res.png)
+the result is
+
+![](img/diff-vs-detrend.png)
 
 
 
