@@ -140,5 +140,64 @@ the result is
 
 ![](img/diff-vs-detrend.png)
 
+## naive predictions
+
+```
+import "contrib/anaisdg/statsmodels"
+
+original = from(bucket: "training")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r["_measurement"] == "airline-train")
+  |> filter(fn: (r) => r["_field"] == "passengers")
+  |> map(fn: (r) => ({ r with _value: float(v: r._value) }))
+
+trend = original   
+|> statsmodels.linearRegression()
+|> map(fn: (r) => ({ r with _value: float(v: r.y_hat) }))
+
+trend |> map(fn: (r) => ({ r with _value: r.y - r.y_hat }))
+|> yield(name: "detrend")
+
+diff = original 
+  |> difference(nonNegative: false, columns: ["_value"])
+
+diff
+  |> yield(name: "diff")
+```
+
+getFieldValue = (tables=<-, field) => {
+  extract = tables
+    |> findColumn(
+      fn: (key) => key._field == field,
+      column: "_value"
+    )
+  return extract[0]
+}
+
+train = from(bucket: "training")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r["_measurement"] == "airline-train")
+  |> filter(fn: (r) => r["_field"] == "passengers")
+
+train |> yield(name: "train")
+
+testd = from(bucket: "training")
+  |> range(start: v.timeRangeStart, stop: v.timeRangeStop)
+  |> filter(fn: (r) => r["_measurement"] == "airline-test")
+  |> filter(fn: (r) => r["_field"] == "passengers")
+
+testd 
+  |> yield(name: "test")
+
+
+naive_pred = testd |> last() |> getFieldValue(field: "passengers")
+
+testd 
+  |> map(fn: (r) => ({ r with _value: naive_pred._value }))
+  |> yield(name: "naive_pred")
+
+
+
+
 
 
