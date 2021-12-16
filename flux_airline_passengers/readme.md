@@ -21,6 +21,7 @@ Even if it refers to flux in the title, it contains multiple notebooks in python
 	* [datagen/EX4_Filtering.ipynb](datagen/EX4_Filtering.ipynb)
 	* [datagen/EX5_Predicting.ipynb](datagen/EX5_Predicting.ipynb)
 	* [datagen/EX6_Predicting-ExpSmoothing.ipynb](datagen/EX6_Predicting-ExpSmoothing.ipynb)
+	* [datagen/EX7_arima_sarima.ipynb](datagen/EX7_arima_sarima.ipynb)
 * data 
 	* [datagen/airline_passengers.csv](datagen/airline_passengers.csv) - the data we analyse
 
