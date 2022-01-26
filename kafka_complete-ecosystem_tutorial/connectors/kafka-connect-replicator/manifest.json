@@ -1,0 +1,38 @@
+{
+  "name" : "kafka-connect-replicator",
+  "version" : "7.0.1",
+  "title" : "Confluent Kafka Replicator",
+  "description" : "Replicator allows you to easily and reliably replicate topics from one Kafka cluster to another.\nIt continuously copies the messages in multiple topics, when necessary creating the topics in the destination cluster using the same topic configuration in the source cluster.\nThis includes preserving the number of partitions, the replication factor, and any configuration overrides specified for individual topics.\nReplicator is included in <a href=\"https://www.confluent.io/product/confluent-enterprise/\">Confluent Enterprise Platform</a>, or can be downloaded\nand installed separately. It can be used for free for 30 days, but after that does require an Enterprise license. <a href=\"https://www.confluent.io/contact/\">Contact Confluent</a>\nfor more details.",
+  "owner" : {
+    "username" : "confluentinc",
+    "type" : "organization",
+    "name" : "Confluent, Inc.",
+    "url" : "http://confluent.io",
+    "logo" : "assets/confluent.png"
+  },
+  "support" : {
+    "summary" : "This connector is <a href=\"http://confluent.io/subscription/\">fully supported by\nConfluent</a> as part of a\n<a href=\"https://www.confluent.io/product/confluent-enterprise/\">Confluent Enterprise Platform</a> subscription.",
+    "url" : "http://confluent.io/subscription/",
+    "logo" : "assets/confluent.png",
+    "provider_name" : "Confluent, Inc."
+  },
+  "tags" : [ "Aggregation", "Multi-DC", "Active", "Passive", "Kafka", "Cluster", "Replication", "Multiple data center" ],
+  "features" : {
+    "supported_encodings" : [ "any" ],
+    "single_message_transforms" : true,
+    "confluent_control_center_integration" : true,
+    "kafka_connect_api" : true
+  },
+  "logo" : "assets/apache-kafka.png",
+  "documentation_url" : "https://docs.confluent.io/kafka-connect-replicator/current/index.html",
+  "docker_image" : {
+    "namespace" : "confluentinc",
+    "name" : "cp-enterprise-replicator"
+  },
+  "license" : [ {
+    "name" : "Confluent Software Evaluation License",
+    "url" : "https://www.confluent.io/software-evaluation-license"
+  } ],
+  "component_types" : [ "source" ],
+  "release_date" : "2021-12-10"
+}
