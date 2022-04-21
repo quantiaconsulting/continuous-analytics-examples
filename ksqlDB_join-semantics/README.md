@@ -1,4 +1,4 @@
-# ksqlDB - Ads
+# ksqlDB - Join semantics
 
 ## Introduction
 
