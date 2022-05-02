@@ -1,0 +1,33 @@
+{
+  "name" : "kafka-connect-json-schema",
+  "version" : "0.2.5",
+  "title" : "Kafka Connect JSON Schema Transformations",
+  "description" : "This project provides a mechanism to marshall data from JSON to a Kafka Connect struct based on a user provided JSON schema. This is accomplished by using the FromJson transformation which will convert data as a transformation. The JsonSchemaConverter transformation can be used to read and write data as Json.",
+  "owner" : {
+    "username" : "jcustenborder",
+    "name" : "Jeremy Custenborder"
+  },
+  "support" : {
+    "summary" : "Support provided through community involvement.",
+    "url" : "https://github.com/jcustenborder/kafka-connect-json-schema/issues"
+  },
+  "tags" : [ "JSON", "Transform" ],
+  "features" : {
+    "supported_encodings" : [ "any" ],
+    "single_message_transforms" : true,
+    "confluent_control_center_integration" : true,
+    "kafka_connect_api" : true
+  },
+  "documentation_url" : "https://jcustenborder.github.io/kafka-connect-documentation/",
+  "source_url" : "https://github.com/jcustenborder/kafka-connect-json-schema",
+  "docker_image" : {
+    "namespace" : "jcustenborder",
+    "name" : "kafka-connect-docker"
+  },
+  "license" : [ {
+    "name" : "The Apache License, Version 2.0",
+    "url" : "https://www.apache.org/licenses/LICENSE-2.0"
+  } ],
+  "component_types" : [ "converter", "transform" ],
+  "release_date" : "2020-05-19"
+}

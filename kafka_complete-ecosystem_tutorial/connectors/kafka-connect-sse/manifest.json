@@ -1,0 +1,36 @@
+{
+  "name" : "kafka-connect-sse",
+  "version" : "1.0",
+  "title" : "Kafka Connect SSE",
+  "description" : "A Kafka Connect source connector for Server Sent Events",
+  "owner" : {
+    "username" : "cjmatta",
+    "type" : "user",
+    "name" : "Christopher Matta",
+    "url" : "https://github.com/cjmatta"
+  },
+  "support" : {
+    "summary" : "Support provided through community involvement.",
+    "url" : "https://github.com/cjmatta/kafka-connect-sse/issues"
+  },
+  "tags" : [ "SSE", "Server Sent Events" ],
+  "features" : {
+    "supported_encodings" : [ "any" ],
+    "single_message_transforms" : true,
+    "confluent_control_center_integration" : true,
+    "kafka_connect_api" : true
+  },
+  "logo" : "assets/HTML5_Badge_256.png",
+  "documentation_url" : "https://github.com/cjmatta/kafka-connect-sse/blob/master/README.md",
+  "source_url" : "https://github.com/cjmatta/kafka-connect-sse",
+  "docker_image" : {
+    "namespace" : "jcustenborder",
+    "name" : "kafka-connect-docker"
+  },
+  "license" : [ {
+    "name" : "The Apache License, Version 2.0",
+    "url" : "https://www.apache.org/licenses/LICENSE-2.0"
+  } ],
+  "component_types" : [ "source" ],
+  "release_date" : "2020-09-18"
+}
