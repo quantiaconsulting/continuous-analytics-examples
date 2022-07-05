@@ -52,14 +52,3 @@ services:
       - ksqldb-server
     entrypoint: /bin/sh
     tty: true
-
-  notebook:
-    image: jupyter/pyspark-notebook:42f4c82a07ff
-    ports:
-      - 8888:8888
-    volumes:
-      - ./datagen:/home/jovyan/work
-    environment:
-        - GRANT_SUDO=yesd
-        - JUPYTER_ENABLE_LAB=yes
-        - JUPYTER_TOKEN=sda
