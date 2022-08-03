@@ -431,7 +431,7 @@ This application is run by the `cnfldemos/cp-demo-kstreams` Docker container.
  
 This consumer group `app` has a single consumer `consumer_app_1` consuming all of the partitions in the topic `wikipedia.parsed`:
 
-    docker exec zookeeper kafka-consumer-groups --bootstrap-server kafka2:9091,kafka2:9091 --describe --group app
+    docker exec zookeeper kafka-consumer-groups --bootstrap-server kafka2:9091,kafka2:9091 --describe --group wikipedia-activity-monitor
 
 Add a second consumer `consumer_app_2` to the existing consumer group `app`:
 

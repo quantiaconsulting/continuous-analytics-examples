@@ -14,4 +14,4 @@ docker exec connect kafka-avro-console-consumer \
    --property schema.registry.url=http://schema-registry:8081 \
    --consumer-property interceptor.classes=io.confluent.monitoring.clients.interceptor.MonitoringConsumerInterceptor \
    --consumer-property group.id=app \
-   --consumer-property client.id=consumer_app_$ID > /dev/null 2>&1 &
+   --consumer-property client.id=consumer_app_1 > /dev/null 2>&1 &
