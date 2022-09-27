@@ -18,7 +18,7 @@ services:
   notebook:
     image: jupyter/pyspark-notebook:67b8fb91f950
     ports:
-      - 8889:8888
+      - 8888:8888
     volumes:
       - ./datagen:/home/jovyan/work
     environment:
